@@ -1,7 +1,7 @@
  #!/bin/bash
 export AWS_PAGER=""
 ACCOUNT_ID=$(aws sts get-caller-identity | jq -r .Account)
-REGION=us-east-1
+REGION=us-west-1
 
 # login to ECR
 echo "################### Login To ECR ###################"
@@ -21,15 +21,19 @@ ECR_APPLICATION_TIER_REPO=$(aws ecr describe-repositories --repository-names ${E
 docker build -t ha-app-application-tier .
 docker tag ha-app-application-tier:latest $ECR_APPLICATION_TIER_REPO:latest
 
-echo "################### Pushing application tier image ###################"
-docker push $ECR_APPLICATION_TIER_REPO:latest
-
 #building and pushing the presentation tier image
 cd ../presentation-tier/
 echo "################### Building presentation tier image ###################"
 ECR_PRESENTATION_TIER_REPO=$(aws ecr describe-repositories --repository-names ${ECR_PRESENTATION_REPO_NAME} | jq -r '.repositories[0].repositoryUri')
 docker build -t ha-app-presentation-tier .
 docker tag ha-app-presentation-tier:latest $ECR_PRESENTATION_TIER_REPO:latest
+
+# login to ECR
+echo "################### Login To ECR  this is second login for pushing images to ecr###################"
+aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.us-west-1.amazonaws.com
+
+echo "################### Pushing application tier image ###################"
+docker push $ECR_APPLICATION_TIER_REPO:latest
 
 echo "################### Pushing presentation tier image ###################"
 docker push $ECR_PRESENTATION_TIER_REPO:latest
